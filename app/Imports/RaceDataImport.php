@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Age;
 use App\Models\FurlongLookup;
 use App\Models\Horse;
+use App\Models\MedicationEquipment;
 use App\Models\Race;
 use App\Models\Surface;
 use App\Models\TrackLookup;
@@ -48,7 +49,6 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
         $row_type = $row[0];
         if($row_type == 'R'){
             $this->handleRace($row);
-            \Log::info('Race Data Imported -> ' . json_encode($this->currentRace));
         }elseif($row_type == 'H'){
             $this->handleHorse($row);
         }
@@ -131,7 +131,7 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
         $weight_carried = $row['8'];
         $age = $row['9'];
         $gender = $row['10'];
-        /*$equipment_id = $row['2'];*/
+        $equipments = $row['11'];
         $jockey = $row['12'];
         $win_odds = $row['13'];
         $claiming_price = $row['16'];
@@ -158,6 +158,19 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
             'owner' => $owner,
             'data' => $data
         ];
-        Horse::create($dataArray);
+        $horse = Horse::create($dataArray);
+        if ($equipments){
+            \Log::info(str_split($equipments));
+            $equipmentsArray = str_split($equipments);
+            $medicationEquipment = MedicationEquipment::whereIn('symbol' , $equipmentsArray)
+                ->where(function ($query) use ($equipmentsArray) {
+                    foreach ($equipmentsArray as $name) {
+                        $query->orWhereRaw("BINARY symbol = ?", [$name]);
+                    }
+                })->get();
+            \Log::info($medicationEquipment);
+            $horse->medicationEquipment()->attach($medicationEquipment);
+        }
+
     }
 }

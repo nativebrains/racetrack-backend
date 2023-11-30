@@ -43,4 +43,9 @@ class Horse extends Model
         return json_decode($value, true);
     }
 
+    public function medicationEquipment(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(MedicationEquipment::class);
+    }
+
 }
