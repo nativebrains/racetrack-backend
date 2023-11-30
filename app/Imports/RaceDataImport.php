@@ -96,7 +96,7 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
         $track_name = $row['2'];
         $date = $row['3'];
         $number_of_races = $row['4'];
-        $type = $row['7'];
+        $type = $row['6'];
         $ageData = $row['12'];
         $distance_type = $row['14'];
         $distance = $row['13'];
@@ -145,7 +145,7 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
             'track_name' => $track_name,
             'date' => Carbon::createFromFormat('Ymd',$date)->format('Y-m-d'),
             'previous_race' => $previous_race_date,
-            'name' => $name,
+            'name' => str_replace('dq-', '', $name),
             'weight_carried' => $weight_carried,
             'age' => $age,
             'gender' => $gender,
