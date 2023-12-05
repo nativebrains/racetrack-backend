@@ -37,4 +37,20 @@ class Race extends Model
     {
         return json_decode($value, true);
     }
+
+    public function horses(){
+        return $this->hasMany(Horse::class, 'race_id', 'id');
+    }
+    public function age(){
+        return $this->belongsTo(Age::class, 'age_id', 'id');
+    }
+    public function distance(){
+        return $this->hasOne('distance');
+    }
+    public function surface(){
+        return $this->belongsTo(Surface::class, 'surface_id', 'id');
+    }
+    public function track(){
+        return $this->belongsTo(TrackLookup::class, 'track_lookup_id', 'id');
+    }
 }

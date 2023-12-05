@@ -20,8 +20,24 @@ class HomeController extends Controller
         return response()->json($this->prepareFilters(), 200 );
     }
 
-    public function fetchRaceData(){
-        $races = Race::get();
+    public function fetchRaceData(Request $request){
+        $races = Race::with(['horses', 'age','surface', 'track', 'distance'])
+            ->whereHas('horses', function ($query) use ($request) {
+                $query->where('horse_id', $request->horse);
+            })
+            ->when($request->age, function ($query) use ($request){
+                $query->where('age_id', $request->age);
+            })
+            ->when($request->surface, function ($query) use ($request){
+                $query->where('surface_id', $request->surface);
+            })
+            ->when($request->track, function ($query) use ($request){
+                $query->where('track_lookup_id', $request->track);
+            })
+            ->when($request->race_type, function ($query) use ($request) {
+                $query->where('type', $request->race_type);
+            })
+            ->get();
         return response()->json([
              'races' => $races,
         ], 200 );
