@@ -23,7 +23,7 @@ class HomeController extends Controller
     public function fetchRaceData(Request $request){
         $races = Race::with(['horses', 'age','surface', 'track', 'distance'])
             ->whereHas('horses', function ($query) use ($request) {
-                $query->where('horse_id', $request->horse);
+                $query->where('id', $request->horse);
             })
             ->when($request->age, function ($query) use ($request){
                 $query->where('age_id', $request->age);
