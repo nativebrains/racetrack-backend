@@ -38,19 +38,25 @@ class Race extends Model
         return json_decode($value, true);
     }
 
-    public function horses(){
+    public function horses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
         return $this->hasMany(Horse::class, 'race_id', 'id');
     }
-    public function age(){
+    public function age(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
         return $this->belongsTo(Age::class, 'age_id', 'id');
     }
-    public function distance(){
-        return $this->hasOne('distance');
+    public function distance(): \Illuminate\Database\Eloquent\Relations\MorphTo
+    {
+        return $this->morphTo('distance');
     }
-    public function surface(){
+
+    public function surface(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
         return $this->belongsTo(Surface::class, 'surface_id', 'id');
     }
-    public function track(){
+    public function track(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
         return $this->belongsTo(TrackLookup::class, 'track_lookup_id', 'id');
     }
 }

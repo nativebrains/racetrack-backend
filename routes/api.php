@@ -21,5 +21,5 @@ use Illuminate\Support\Facades\Route;
 Route::group(['as' => 'v1.', 'prefix' => 'v1'], function () {
     Route::get('get-csrf-token', [\App\Http\Controllers\API\V1\HomeController::class, 'projectMetaData'])->name('project.metaData');
     Route::get('meta-data', [\App\Http\Controllers\API\V1\HomeController::class, 'projectMetaData'])->name('project.metaData');
-    Route::get('race', [\App\Http\Controllers\API\V1\HomeController::class, 'fetchRaceData'])->name('fetch.race.data');
+    Route::post('race', [\App\Http\Controllers\API\V1\HomeController::class, 'fetchRaceData'])->name('fetch.race.data');
 });
