@@ -110,27 +110,33 @@ class HomeController extends Controller
 
     private function fetRaceData($filters){
         return Race::with(['horses', 'age','surface', 'track', 'distance'])
-            /*->whereHas('horses', function ($query) use ($filters) {
+            ->whereHas('horses', function($query) use ($filters) {
+                return $query->when($filters['trainer'], function ($query) use ($filters) {
+                    $query->where('trainer', $filters['trainer']);
+                })
+                    ->when($filters['jockey'], function ($query) use ($filters){
+                        $query->where('jockey', $filters['jockey']);
+                    })
+                    ->when($filters['track'], function ($query) use ($filters) {
+                        $query->where('track_lookup_id', $filters['track']);
+                    })
+                    ->when($filters['race_track'], function ($query) use ($filters){
+                        $query->where('track_name', $filters['race_track']);
+                    })
+                    ->when($filters['age'], function ($query) use ($filters){
+                        $query->where('age_id', $filters['age']);
+                    })
+                    ->when($filters['sex'], function ($query) use ($filters){
+                        $query->where('gender', $filters['sex']);
+                    })
+                    ->when($filters['odds'], function ($query) use ($filters){
+                        $odds = $filters['odds'];
+                        if ($odds['min'] && $odds['max']){
+                            $query->whereBetween('win_odds', [$odds['min'], $odds['max']]);
+                        }
+                    });
+            })
 
-            })*/
-            ->when($filters['trainer'], function ($query) use ($filters) {
-                $query->horses()->where('trainer', $filters['trainer']);
-            })
-            ->when($filters['jockey'], function ($query) use ($filters){
-                $query->horses()->where('jockey', $filters['jockey']);
-            })
-            ->when($filters['track'], function ($query) use ($filters) {
-                $query->where('track_lookup_id', $filters['track']);
-            })
-            ->when($filters['race_track'], function ($query) use ($filters){
-                $query->where('track_name', $filters['race_track']);
-            })
-            ->when($filters['age'], function ($query) use ($filters){
-                $query->horses()->where('age_id', $filters['age']);
-            })
-            ->when($filters['sex'], function ($query) use ($filters){
-                $query->horses()->where('gender', $filters['sex']);
-            })
             ->when($filters['surface'], function ($query) use ($filters){
                 $query->where('surface_id', $filters['surface']);
             })
@@ -139,22 +145,17 @@ class HomeController extends Controller
             })
             ->when($filters['distance'], function ($query) use ($filters){
                 $distance = $filters['distance'];
-                if ($distance->min && $distance->max){
-                    $query->distance()->whereBetween('distance', [$distance->min, $distance->max]);
+                if ($distance['min'] && $distance['max']){
+                    $query->distance()->whereBetween('distance', $distance);
                 }
             })
             ->when($filters['date'], function ($query) use ($filters){
                 $date = $filters['date'];
-                if ($date->start && $date->end){
-                    $query->whereBetween('date',[$date->start.' 00:00:00',$date->end.' 23:59:59']);
+                if (isset($date) && $date['start'] && $date['end']){
+                    $query->whereBetween('date',[$date['start'].' 00:00:00',$date['end'].' 23:59:59']);
                 }
             })
-            ->when($filters['odds'], function ($query) use ($filters){
-                $odds = $filters['odds'];
-                if ($odds->min && $odds->max){
-                    $query->horses()->whereBetween('win_odds', [$odds->min, $odds->max]);
-                }
-            })
-            ->get();
+
+            ->toRawSql();
     }
 }
