@@ -48,4 +48,9 @@ class Horse extends Model
         return $this->belongsToMany(MedicationEquipment::class);
     }
 
+    public function race(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Race::class);
+    }
+
 }
