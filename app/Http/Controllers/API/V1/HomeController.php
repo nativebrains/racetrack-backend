@@ -199,7 +199,7 @@ class HomeController extends Controller
         $roi = [
             'roi' => 0,
             'averagePayout' => 0,
-            'averagePayoutCount' => 0,
+            'totalStarts' => 0,
         ];
         /*
          * ((# of wins * Average Winning Odds) - # of Starts) / Total Number of Starts
@@ -208,9 +208,16 @@ class HomeController extends Controller
         $numberOfWins = $horses->where('finish_position', 1);
         $averageWinOdds = $horses->avg('win_odds');
         $numberOfStarts = $horses->count();
-        $totalNumberOfStarts = 1;
+        $totalNumberOfStarts = 0;
+        $averagePayout = 0;
+        foreach ($horses as $horse){
+            $totalNumberOfStarts += $horse->race->horses()->count();
+            $averagePayout += $horse->race->horses()->sum('win_odds');
+        }
         $roi = (($numberOfWins * $averageWinOdds) - $numberOfStarts) / $totalNumberOfStarts;
         $roi['roi'] = $roi;
+        $roi['averagePayout'] = $averagePayout / 10;
+        $roi['totalStarts'] = $totalNumberOfStarts;
 
         return $roi;
     }
