@@ -17,14 +17,14 @@ Short description of your Laravel project.
 
 ## Features
 
-- List key features of your project.
-- Bullet points are a good way to make the list readable.
+-  List of features (e.g. what it does and key benefits)
 
 ## Requirements
 
 - PHP 8.1 or higher
 - Composer
 - Node.js and npm (for Laravel Mix)
+- Postgres DB
 
 ## Installation
 
@@ -53,6 +53,14 @@ Short description of your Laravel project.
     ```
 
 5. Configure your database and other settings in the `.env` file.
+- Create a Postgres DB and connect in ENV. 
+- Set the DB_USERNAME and DB_PASSWORD in the.env file.
+- Set the APP_URL in the.env file.
+- Set the MAIL_MAILER and MAIL_HOST in the.env file.
+- Set the MAIL_USERNAME and MAIL_PASSWORD in the.env file.
+- Set the MAIL_ENCRYPTION in the.env file.
+- Set the MAIL_FROM_ADDRESS and MAIL_FROM_NAME in the.env file
+- Set the redis cache if any.
 
 6. Migrate the database:
 
@@ -88,18 +96,15 @@ Visit `http://localhost:8000` in your browser.
 
 ## Configuration
 
-- Provide additional configuration steps if necessary.
-- Explain any environment variables or configuration files.
+
 
 ## Usage
 
-- Explain how to use or run your Laravel application.
-- Include examples or screenshots if helpful.
+-  
 
 ## Contributing
 
-- Explain how others can contribute to your project.
-- Provide guidelines for submitting issues and pull requests.
+-  
 
 ## License
 

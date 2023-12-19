@@ -66,35 +66,3 @@ class syncFurlongs extends Command
         }
     }
 }
-/*
- * 200,Sprint,2
-250,Sprint,2.5
-300,Sprint,3
-350,Sprint,3.5
-400,Sprint,4
-450,Sprint,4.5
-500,Sprint,5
-550,Sprint,5.5
-600,Sprint,6
-650,Sprint,6.5
-700,Sprint,7
-750,Sprint,7.5
-800,Route,8
-832,Route,8.32
-850,Route,8.5
-900,Route,9
-950,Route,9.5
-1000,Route,10
-1050,Route,10.5
-1100,Route,11
-1150,Route,11.5
-1200,Route,12
-1250,Route,12.5
-1300,Route,13
-1350,Route,13.5
-1400,Route,14
-1450,Route,14.5
-1500,Route,15
-1550,Route,15.5
-1600,Route,16
- *  */

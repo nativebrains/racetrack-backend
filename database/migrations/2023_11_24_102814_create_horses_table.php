@@ -21,7 +21,6 @@ return new class extends Migration
             $table->integer('weight_carried')->comment('weight carried by horse');
             $table->integer('age')->comment('horse age');
             $table->string('gender')->nullable()->comment('horse gender');
-            $table->unsignedBigInteger('equipment_id')->nullable();
             $table->string('jockey')->nullable()->comment('Jockey name');
             $table->integer('win_odds')->comment('Win Odds (Net win per $1 bet - excludes the $1 bet, so 1.4 means 2.4 is returned)');
             $table->integer('claiming_price');
