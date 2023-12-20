@@ -14,6 +14,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+/*Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});*/
+
+Route::group(['as' => 'v1.', 'prefix' => 'v1'], function () {
+    Route::get('get-csrf-token', [\App\Http\Controllers\API\V1\HomeController::class, 'projectMetaData'])->name('project.metaData');
+    Route::get('meta-data', [\App\Http\Controllers\API\V1\HomeController::class, 'projectMetaData'])->name('project.metaData');
+    Route::post('race', [\App\Http\Controllers\API\V1\HomeController::class, 'fetchRaceData'])->name('fetch.race.data');
 });

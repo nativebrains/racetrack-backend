@@ -22,6 +22,7 @@ return new class extends Migration
             $table->morphs('distance');
             $table->unsignedBigInteger('surface_id');
             $table->unsignedBigInteger('track_lookup_id');
+            $table->json('data')->comment('save complete row as json');;
             $table->timestamps();
             $table->softDeletes();
 

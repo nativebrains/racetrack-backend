@@ -31,5 +31,6 @@ class SetupProjectMetaData extends Command
         Artisan::call('sync:yards');
         Artisan::call('sync:surface');
         Artisan::call('sync:track-condition');
+        Artisan::call('sync:medication-equipment');
     }
 }
