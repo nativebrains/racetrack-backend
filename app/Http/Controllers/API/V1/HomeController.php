@@ -153,11 +153,17 @@ class HomeController extends Controller
                     ->when($filters['race_type'], function ($query) use ($filters){
                         $query->where('type', $filters['race_type']);
                     })
+                    ->when($filters['track'], function ($query) use ($filters){
+                        $query->where('track_lookup_id', (int)$filters['track']);
+                    })
                     ->when($filters['distance'], function ($query) use ($filters){
                         $distance = $filters['distance'];
                         if ($distance['min'] && $distance['max']){
                             $query->distance()->whereBetween('distance', $distance);
                         }
+                    })
+                    ->when($filters['age'], function ($query) use ($filters){
+                        $query->where('age_id', $filters['age']);
                     })
                     ;
             })
@@ -173,14 +179,8 @@ class HomeController extends Controller
             ->when($filters['jockey'], function ($query) use ($filters){
                 $query->where('jockey', $filters['jockey']);
             })
-            ->when($filters['track'], function ($query) use ($filters) {
-                $query->where('track_lookup_id', $filters['track']);
-            })
             ->when($filters['race_track'], function ($query) use ($filters){
                 $query->where('track_name', $filters['race_track']);
-            })
-            ->when($filters['age'], function ($query) use ($filters){
-                $query->where('age_id', $filters['age']);
             })
             ->when($filters['sex'], function ($query) use ($filters){
                 $query->where('gender', $filters['sex']);
