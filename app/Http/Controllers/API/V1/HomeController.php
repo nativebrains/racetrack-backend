@@ -41,8 +41,8 @@ class HomeController extends Controller
 
         $horse = $horses->last();
 
-        $winPercent = $this->calculateWinPercentage($horse->race);
-        $inMoney = $this->calculateInMoney($horse->race);
+        $winPercent = $horse ? $this->calculateWinPercentage($horse->race) : 1;
+        $inMoney = $horse ? $this->calculateInMoney($horse->race) : 1 ;
 
         $averages = $this->calculateAverages($horses);
 
@@ -209,12 +209,16 @@ class HomeController extends Controller
         $averageWinOdds = $horses->avg('win_odds');
         $numberOfStarts = $horses->count();
         $totalNumberOfStarts = 0;
+        $roi = 0;
         $averagePayout = 0;
         foreach ($horses as $horse){
             $totalNumberOfStarts += $horse->race->horses()->count();
             $averagePayout += $horse->race->horses()->sum('win_odds');
         }
-        $roi = (($numberOfWins->count() * $averageWinOdds) - $numberOfStarts) / $totalNumberOfStarts;
+        if ($totalNumberOfStarts){
+            $roi = ((($numberOfWins->count() * $averageWinOdds) - $numberOfStarts) / $totalNumberOfStarts);
+        }
+
         $data['roi'] = $roi;
         $data['averagePayout'] = $averagePayout;
         $data['averagePayoutCount'] = $averagePayout / 10;
