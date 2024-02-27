@@ -196,7 +196,7 @@ class HomeController extends Controller
     }
 
     private function calculateAverages($horses){
-        $roi = [
+        $data = [
             'roi' => 0,
             'averagePayout' => 0,
             'totalStarts' => 0,
@@ -214,12 +214,13 @@ class HomeController extends Controller
             $totalNumberOfStarts += $horse->race->horses()->count();
             $averagePayout += $horse->race->horses()->sum('win_odds');
         }
-        $roi = (($numberOfWins * $averageWinOdds) - $numberOfStarts) / $totalNumberOfStarts;
-        $roi['roi'] = $roi;
-        $roi['averagePayout'] = $averagePayout / 10;
-        $roi['totalStarts'] = $totalNumberOfStarts;
+        $roi = (($numberOfWins->count() * $averageWinOdds) - $numberOfStarts) / $totalNumberOfStarts;
+        $data['roi'] = $roi;
+        $data['averagePayout'] = $averagePayout;
+        $data['averagePayoutCount'] = $averagePayout / 10;
+        $data['totalStarts'] = $totalNumberOfStarts;
 
-        return $roi;
+        return $data;
     }
 
     public function calculateWinPercentage($race)
