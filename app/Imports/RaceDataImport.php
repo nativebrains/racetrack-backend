@@ -12,7 +12,7 @@ use App\Models\TrackLookup;
 use App\Models\YardLookup;
 use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\RegistersEventListeners;
 use Maatwebsite\Excel\Concerns\RemembersChunkOffset;
 use Maatwebsite\Excel\Concerns\RemembersRowNumber;
@@ -24,7 +24,7 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Events\AfterImport;
 use Maatwebsite\Excel\Events\BeforeImport;
 
-class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, ShouldQueue, WithChunkReading, WithEvents
+class RaceDataImport implements ToModel, SkipsEmptyRows, WithHeadingRow, ShouldQueue, WithChunkReading, WithEvents
 {
     use RemembersRowNumber;
     use RegistersEventListeners;
@@ -37,19 +37,20 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
     protected mixed $currentRace =  null;
 
 
-    public function  __construct( ){
-
+    public function  __construct()
+    {
     }
 
 
     /**
      * @param array $row
      */
-    public function model(array $row){
+    public function model(array $row)
+    {
         $row_type = $row[0];
-        if($row_type == 'R'){
+        if ($row_type == 'R') {
             $this->handleRace($row);
-        }elseif($row_type == 'H'){
+        } elseif ($row_type == 'H') {
             $this->handleHorse($row);
         }
     }
@@ -57,7 +58,8 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
     /*
     * Define the row number containing all the headings, if no heading found than the value will be 0.
     */
-    public function headingRow(): int {
+    public function headingRow(): int
+    {
         return $this->heading;
     }
 
@@ -65,7 +67,8 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
     /*
      * Dividing the Whole file into chunks and for the sole purpose of better Server resource management and defining the chunk size
     */
-    public function chunkSize(): int {
+    public function chunkSize(): int
+    {
         return 15000;
     }
 
@@ -75,7 +78,7 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
     */
     public   function beforeImport(BeforeImport $event): void
     {
-        \Log::info('beforeImport');
+        Log::info('beforeImport');
     }
     /*
      it will be executed after an import is finished
@@ -83,23 +86,20 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
     */
     public   function afterImport(AfterImport $event): void
     {
-        \Log::info('afterImport');
+        Log::info('afterImport');
 
         $errorFileName = $event->getConcernable()->exceptionFileName;
-
-
-
-
     }
 
-    private function handleRace($row){
+    private function handleRace($row)
+    {
+
         $track_name = $row['2'];
         $date = $row['3'];
         $number_of_races = $row['4'];
         $type = $row['6'];
         $ageData = $row['12'];
-        $distance_type = $row['14'];
-        $distance = $row['13'];
+        $lookpModal = $row['14'] === 'F' ? FurlongLookup::class : YardLookup::class;
         $surface = $row['16'];
         $track = $row['18'];
         $data = $row;
@@ -108,13 +108,13 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
         $status = str_contains('F', $ageData);
         $dataArray = [
             'track_name' => $track_name,
-            'date' => Carbon::createFromFormat('Ymd',$date)->format('Y-m-d'),
+            'date' => Carbon::createFromFormat('Ymd', $date)->format('Y-m-d'),
             'number_of_races' => $number_of_races,
             'type' => $type,
             'age_id' => $age?->id,
             'status' => $status ? 'Filles/Mares Only' : 'Open',
-            'distance_type' => ($distance_type == 'F' ? FurlongLookup::class : YardLookup::class),
-            'distance_id' => ($distance_type == 'F' ? FurlongLookup::whereDistance($distance)->first()->id : YardLookup::whereDistance($distance)->first()->id),
+            'distance_type' => $lookpModal,
+            'distance_id' => $this->getDistance($lookpModal, $row[13])->id,
             'surface_id' => Surface::whereSymbol($surface)->first()->id,
             'track_lookup_id' => TrackLookup::whereSymbol($track)->first()->id,
             'data' => $data
@@ -122,11 +122,12 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
         /*\Log::info($dataArray);*/
         $this->currentRace = Race::create($dataArray);
     }
-    private function handleHorse($row){
+    private function handleHorse($row)
+    {
         $race_id = $this->currentRace?->id;
         $track_name = $this->currentRace?->track_name;
         $date = $row['2'];
-        $previous_race_date= substr($row['5'], 0 , 7);
+        $previous_race_date = substr($row['5'], 0, 7);
         $name = $row['7'];
         $weight_carried = $row['8'];
         $age = $row['9'];
@@ -143,7 +144,7 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
         $dataArray = [
             'race_id' => $race_id,
             'track_name' => $track_name,
-            'date' => Carbon::createFromFormat('Ymd',$date)->format('Y-m-d'),
+            'date' => Carbon::createFromFormat('Ymd', $date)->format('Y-m-d'),
             'previous_race' => $previous_race_date,
             'name' => str_replace('dq-', '', $name),
             'weight_carried' => $weight_carried,
@@ -159,18 +160,28 @@ class RaceDataImport implements ToModel, SkipsEmptyRows , WithHeadingRow, Should
             'data' => $data
         ];
         $horse = Horse::create($dataArray);
-        if ($equipments){
-            \Log::info(str_split($equipments));
+        if ($equipments) {
+            Log::info(str_split($equipments));
             $equipmentsArray = str_split($equipments);
-            $medicationEquipment = MedicationEquipment::whereIn('symbol' , $equipmentsArray)
+            $medicationEquipment = MedicationEquipment::whereIn('symbol', $equipmentsArray)
                 ->where(function ($query) use ($equipmentsArray) {
                     foreach ($equipmentsArray as $name) {
                         $query->orWhereRaw("BINARY symbol = ?", [$name]);
                     }
                 })->get();
-            \Log::info($medicationEquipment);
+            Log::info($medicationEquipment);
             $horse->medicationEquipment()->attach($medicationEquipment);
         }
+    }
 
+    private function getDistance($model, $distance)
+    {
+        return $model::firstOrCreate(
+            ['distance' => $distance],
+            [
+                'type' => 'Sprint',
+                'value' => ceil($distance / 100)
+            ]
+        );
     }
 }
