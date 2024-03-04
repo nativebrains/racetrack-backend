@@ -13,6 +13,7 @@ use App\Models\YardLookup;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Psy\Sudo;
+use Illuminate\Support\Number;
 
 class HomeController extends Controller
 {
@@ -41,17 +42,17 @@ class HomeController extends Controller
 
         $horse = $horses->last();
 
-        $winPercent = $this->calculateWinPercentage($horse->race);
-        $inMoney = $this->calculateInMoney($horse->race);
+        $winPercent = $horse ? $this->calculateWinPercentage($horse->race) : 1;
+        $inMoney = $horse ? $this->calculateInMoney($horse->race) : 1 ;
 
         $averages = $this->calculateAverages($horses);
 
         return response()->json([
              'winPercent' => $winPercent,
              'inMoney' => $inMoney,
-             'roi' => $averages['roi'],
-             'averagePayout' => $averages['averagePayout'],
-             'averagePayoutCount' => $averages['averagePayoutCount'],
+             'roi' => round($averages['roi'],2),
+             'averagePayout' => Number::currency($averages['averagePayout']),
+             'averagePayoutCount' => Number::abbreviate($averages['averagePayoutCount']),
              'previousRaceData' => $previousRaceData,
              'recentRaceData' => $recentRaceData,
              'races' => $horses,
@@ -117,8 +118,6 @@ class HomeController extends Controller
 
         /*$startDate = Carbon::parse(Horse::min('date'));*/
         $startDate = Carbon::parse(Horse::min('date'));
-        $startDateDiff = $startDate->diffInDays(Carbon::now());
-        $endDate = 0;
 
         return [
             'age' => $age,
@@ -130,8 +129,8 @@ class HomeController extends Controller
             'race_track' => $raceTrace,
             'race_type' => $raceType,
             'date' => [
-                'start' => $startDateDiff,
-                'end' => $endDate,
+                'start' => $startDate->format('Y-m-d'),
+                'end' => now()->format('Y-m-d'),
             ],
             'odds' => [
                 'min' => Horse::min('win_odds'),
@@ -147,45 +146,45 @@ class HomeController extends Controller
     private function fetRaceData($filters){
         return Horse::with('race')
             ->whereHas('race', function($query) use ($filters) {
-                return $query->when($filters['surface'], function ($query) use ($filters){
+                return $query->when(isset($filters['surface']), function ($query) use ($filters){
                         $query->where('surface_id', $filters['surface']);
                     })
-                    ->when($filters['race_type'], function ($query) use ($filters){
+                    ->when(isset($filters['race_type']), function ($query) use ($filters){
                         $query->where('type', $filters['race_type']);
                     })
-                    ->when($filters['distance'], function ($query) use ($filters){
+                    ->when(isset($filters['track']), function ($query) use ($filters){
+                        $query->where('track_lookup_id', (int)$filters['track']);
+                    })
+                    ->when(isset($filters['distance']), function ($query) use ($filters){
                         $distance = $filters['distance'];
                         if ($distance['min'] && $distance['max']){
                             $query->distance()->whereBetween('distance', $distance);
                         }
                     })
+                    ->when(isset($filters['age']), function ($query) use ($filters){
+                        $query->where('age_id', $filters['age']);
+                    })
                     ;
             })
-            ->when($filters['date'], function ($query) use ($filters){
+            ->when(isset($filters['date']), function ($query) use ($filters){
                 $date = $filters['date'];
                 if (isset($date) && $date['start'] && $date['end']){
                     $query->whereBetween('date',[$date['start'].' 00:00:00',$date['end'].' 23:59:59']);
                 }
             })
-            ->when($filters['trainer'], function ($query) use ($filters) {
+            ->when(isset($filters['trainer']), function ($query) use ($filters) {
                 $query->where('trainer', $filters['trainer']);
             })
-            ->when($filters['jockey'], function ($query) use ($filters){
+            ->when(isset($filters['jockey']), function ($query) use ($filters){
                 $query->where('jockey', $filters['jockey']);
             })
-            ->when($filters['track'], function ($query) use ($filters) {
-                $query->where('track_lookup_id', $filters['track']);
-            })
-            ->when($filters['race_track'], function ($query) use ($filters){
+            ->when(isset($filters['race_track']), function ($query) use ($filters){
                 $query->where('track_name', $filters['race_track']);
             })
-            ->when($filters['age'], function ($query) use ($filters){
-                $query->where('age_id', $filters['age']);
-            })
-            ->when($filters['sex'], function ($query) use ($filters){
+            ->when(isset($filters['sex']), function ($query) use ($filters){
                 $query->where('gender', $filters['sex']);
             })
-            ->when($filters['odds'], function ($query) use ($filters){
+            ->when(isset($filters['odds']), function ($query) use ($filters){
                 $odds = $filters['odds'];
                 if ($odds['min'] && $odds['max']){
                     $query->whereBetween('win_odds', [$odds['min'], $odds['max']]);
@@ -196,7 +195,7 @@ class HomeController extends Controller
     }
 
     private function calculateAverages($horses){
-        $roi = [
+        $data = [
             'roi' => 0,
             'averagePayout' => 0,
             'totalStarts' => 0,
@@ -209,17 +208,22 @@ class HomeController extends Controller
         $averageWinOdds = $horses->avg('win_odds');
         $numberOfStarts = $horses->count();
         $totalNumberOfStarts = 0;
+        $roi = 0;
         $averagePayout = 0;
         foreach ($horses as $horse){
             $totalNumberOfStarts += $horse->race->horses()->count();
             $averagePayout += $horse->race->horses()->sum('win_odds');
         }
-        $roi = (($numberOfWins * $averageWinOdds) - $numberOfStarts) / $totalNumberOfStarts;
-        $roi['roi'] = $roi;
-        $roi['averagePayout'] = $averagePayout / 10;
-        $roi['totalStarts'] = $totalNumberOfStarts;
+        if ($totalNumberOfStarts){
+            $roi = ((($numberOfWins->count() * $averageWinOdds) - $numberOfStarts) / $totalNumberOfStarts);
+        }
 
-        return $roi;
+        $data['roi'] = $roi;
+        $data['averagePayout'] = $averagePayout;
+        $data['averagePayoutCount'] = $averagePayout / 10;
+        $data['totalStarts'] = $totalNumberOfStarts;
+
+        return $data;
     }
 
     public function calculateWinPercentage($race)
