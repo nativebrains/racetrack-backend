@@ -13,6 +13,7 @@ use App\Models\YardLookup;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Psy\Sudo;
+use Illuminate\Support\Number;
 
 class HomeController extends Controller
 {
@@ -49,9 +50,9 @@ class HomeController extends Controller
         return response()->json([
              'winPercent' => $winPercent,
              'inMoney' => $inMoney,
-             'roi' => $averages['roi'],
-             'averagePayout' => $averages['averagePayout'],
-             'averagePayoutCount' => $averages['averagePayoutCount'],
+             'roi' => round($averages['roi'],2),
+             'averagePayout' => Number::currency($averages['averagePayout']),
+             'averagePayoutCount' => Number::abbreviate($averages['averagePayoutCount']),
              'previousRaceData' => $previousRaceData,
              'recentRaceData' => $recentRaceData,
              'races' => $horses,
