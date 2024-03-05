@@ -19,22 +19,23 @@ class HomeController extends Controller
 {
     public function projectMetaData(Request $request)
     {
-        return response()->json($this->prepareFilters(), 200 );
+        return response()->json($this->prepareFilters(), 200);
     }
 
-    public function fetchRaceData(Request $request){
+    public function fetchRaceData(Request $request)
+    {
 
         $horses = collect();
 
-        $recentRaceFilters =$request->recentRaceFilters;
+        $recentRaceFilters = $request->recentRaceFilters;
         $recentRaceData =  $this->fetRaceData($recentRaceFilters);
 
         $previousRaceFilters = $request->previousRaceFilters;
-        $recentStartDate = $recentRaceFilters['date']['start'] ?? null;
+        $recentStartDate = $recentRaceFilters['date']['start'] ?? now()->startOf('month');
         $startDate = Race::where('date', '<', $recentStartDate)->get()->last()->date;
 
         $previousRaceFilters['date']['start'] = $startDate;
-        $previousRaceFilters['date']['end'] = $recentRaceFilters['date']['end'] ?? null;
+        $previousRaceFilters['date']['end'] = $recentRaceFilters['date']['end'] ?? now()->endOf('month');
 
         $previousRaceData =  $this->fetRaceData($previousRaceFilters);
 
@@ -43,61 +44,63 @@ class HomeController extends Controller
         $horse = $horses->last();
 
         $winPercent = $horse ? $this->calculateWinPercentage($horse->race) : 1;
-        $inMoney = $horse ? $this->calculateInMoney($horse->race) : 1 ;
+        $inMoney = $horse ? $this->calculateInMoney($horse->race) : 1;
 
         $averages = $this->calculateAverages($horses);
 
         return response()->json([
-             'winPercent' => $winPercent,
-             'inMoney' => $inMoney,
-             'roi' => round($averages['roi'],2),
-             'averagePayout' => Number::currency($averages['averagePayout']),
-             'averagePayoutCount' => Number::abbreviate($averages['averagePayoutCount']),
-             'previousRaceData' => $previousRaceData,
-             'recentRaceData' => $recentRaceData,
-             'races' => $horses,
-             'race' => $horses->last(),
-        ], 200 );
+            'winPercent' => $winPercent,
+            'inMoney' => $inMoney,
+            'roi' => round($averages['roi'], 2),
+            'averagePayout' => Number::currency($averages['averagePayout']),
+            'averagePayoutCount' => Number::currency($averages['averagePayoutCount']),
+            'totalStarts' => Number::abbreviate($averages['totalStarts']),
+            'previousRaceData' => $previousRaceData,
+            'recentRaceData' => $recentRaceData,
+            'races' => $horses,
+            'race' => $horses->last(),
+        ], 200);
     }
 
-    private function prepareFilters(){
-        $age = Age::all()->map(function ($item){
+    private function prepareFilters()
+    {
+        $age = Age::all()->map(function ($item) {
             return [
                 'key' => $item->id,
                 'label' => $item->value,
             ];
         });
-        $surface = Surface::all()->map(function ($item){
+        $surface = Surface::all()->map(function ($item) {
             return [
                 'key' => $item->id,
                 'label' => $item->symbol,
             ];
         });
-        $track = TrackLookup::all()->map(function ($item){
+        $track = TrackLookup::all()->map(function ($item) {
             return [
                 'key' => $item->id,
                 'label' => $item->symbol,
             ];
         });
-        $trainers = Horse::distinct()->pluck('trainer')->map(function ($item){
+        $trainers = Horse::distinct()->pluck('trainer')->map(function ($item) {
             return [
                 'key' => $item,
                 'label' => $item,
             ];
         });
-        $jockey = Horse::distinct()->pluck('jockey')->map(function ($item){
+        $jockey = Horse::distinct()->pluck('jockey')->map(function ($item) {
             return  [
                 'key' => $item,
                 'label' => $item,
             ];
         });
-        $raceTrace = Race::distinct()->pluck('track_name')->map(function ($item){
+        $raceTrace = Race::distinct()->pluck('track_name')->map(function ($item) {
             return  [
                 'key' => $item,
                 'label' => $item,
             ];
         });
-        $raceType = Race::distinct()->pluck('type')->map(function ($item){
+        $raceType = Race::distinct()->pluck('type')->map(function ($item) {
             return  [
                 'key' => $item,
                 'label' => $item,
@@ -143,50 +146,52 @@ class HomeController extends Controller
         ];
     }
 
-    private function fetRaceData($filters){
+    private function fetRaceData($filters)
+    {
         return Horse::with('race')
-            ->whereHas('race', function($query) use ($filters) {
-                return $query->when(isset($filters['surface']), function ($query) use ($filters){
-                        $query->where('surface_id', $filters['surface']);
-                    })
-                    ->when(isset($filters['race_type']), function ($query) use ($filters){
+            ->whereHas('race', function ($query) use ($filters) {
+                return $query->when(isset($filters['surface']), function ($query) use ($filters) {
+                    $query->where('surface_id', $filters['surface']);
+                })
+                    ->when(isset($filters['race_type']), function ($query) use ($filters) {
                         $query->where('type', $filters['race_type']);
                     })
-                    ->when(isset($filters['track']), function ($query) use ($filters){
+                    ->when(isset($filters['track']), function ($query) use ($filters) {
                         $query->where('track_lookup_id', (int)$filters['track']);
                     })
-                    ->when(isset($filters['distance']), function ($query) use ($filters){
+                    ->when(isset($filters['distance']), function ($query) use ($filters) {
                         $distance = $filters['distance'];
-                        if ($distance['min'] && $distance['max']){
-                            $query->distance()->whereBetween('distance', $distance);
+                        if ($distance['min'] && $distance['max']) {
+                            $query->whereHas('distance', function ($query) use ($distance) {
+                                $query->whereBetween('distance', $distance);
+                            });
                         }
                     })
-                    ->when(isset($filters['age']), function ($query) use ($filters){
+                    ->when(isset($filters['age']), function ($query) use ($filters) {
                         $query->where('age_id', $filters['age']);
-                    })
-                    ;
+                    });
             })
-            ->when(isset($filters['date']), function ($query) use ($filters){
+            ->when(isset($filters['date']), function ($query) use ($filters) {
                 $date = $filters['date'];
-                if (isset($date) && $date['start'] && $date['end']){
-                    $query->whereBetween('date',[$date['start'].' 00:00:00',$date['end'].' 23:59:59']);
+                if (isset($date) && $date['start'] && $date['end']) {
+                    $query->whereBetween('date', [$date['start'] . ' 00:00:00', $date['end'] . ' 23:59:59']);
                 }
             })
             ->when(isset($filters['trainer']), function ($query) use ($filters) {
                 $query->where('trainer', $filters['trainer']);
             })
-            ->when(isset($filters['jockey']), function ($query) use ($filters){
+            ->when(isset($filters['jockey']), function ($query) use ($filters) {
                 $query->where('jockey', $filters['jockey']);
             })
-            ->when(isset($filters['race_track']), function ($query) use ($filters){
+            ->when(isset($filters['race_track']), function ($query) use ($filters) {
                 $query->where('track_name', $filters['race_track']);
             })
-            ->when(isset($filters['sex']), function ($query) use ($filters){
+            ->when(isset($filters['sex']), function ($query) use ($filters) {
                 $query->where('gender', $filters['sex']);
             })
-            ->when(isset($filters['odds']), function ($query) use ($filters){
+            ->when(isset($filters['odds']), function ($query) use ($filters) {
                 $odds = $filters['odds'];
-                if ($odds['min'] && $odds['max']){
+                if ($odds['min'] && $odds['max']) {
                     $query->whereBetween('win_odds', [$odds['min'], $odds['max']]);
                 }
             })
@@ -194,12 +199,14 @@ class HomeController extends Controller
             ->get();
     }
 
-    private function calculateAverages($horses){
+    private function calculateAverages($horses)
+    {
         $data = [
             'roi' => 0,
             'averagePayout' => 0,
             'totalStarts' => 0,
         ];
+
         /*
          * ((# of wins * Average Winning Odds) - # of Starts) / Total Number of Starts
         */
@@ -210,11 +217,11 @@ class HomeController extends Controller
         $totalNumberOfStarts = 0;
         $roi = 0;
         $averagePayout = 0;
-        foreach ($horses as $horse){
+        foreach ($horses as $horse) {
             $totalNumberOfStarts += $horse->race->horses()->count();
             $averagePayout += $horse->race->horses()->sum('win_odds');
         }
-        if ($totalNumberOfStarts){
+        if ($totalNumberOfStarts) {
             $roi = ((($numberOfWins->count() * $averageWinOdds) - $numberOfStarts) / $totalNumberOfStarts);
         }
 
