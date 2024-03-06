@@ -31,11 +31,12 @@ class HomeController extends Controller
         $recentRaceData =  $this->fetRaceData($recentRaceFilters);
 
         $previousRaceFilters = $request->previousRaceFilters;
-        $recentStartDate = $recentRaceFilters['date']['start'] ?? now()->startOf('month');
-        $startDate = Race::where('date', '<', $recentStartDate)->get()->last()->date;
+        $recentStartDate = $recentRaceFilters['date']['start'];
+
+        $startDate = Race::where('date', '<', $recentStartDate)->get()->last()?->date;
 
         $previousRaceFilters['date']['start'] = $startDate;
-        $previousRaceFilters['date']['end'] = $recentRaceFilters['date']['end'] ?? now()->endOf('month');
+        $previousRaceFilters['date']['end'] = $recentRaceFilters['date']['end'];
 
         $previousRaceData =  $this->fetRaceData($previousRaceFilters);
 
@@ -66,60 +67,78 @@ class HomeController extends Controller
     {
         $age = Age::all()->map(function ($item) {
             return [
-                'key' => $item->id,
+                'value  ' => $item->id,
                 'label' => $item->value,
             ];
         });
+
         $surface = Surface::all()->map(function ($item) {
             return [
-                'key' => $item->id,
-                'label' => $item->symbol,
+                'value' => $item->id,
+                'label' => "{$item->type} ($item->symbol)",
             ];
         });
+
         $track = TrackLookup::all()->map(function ($item) {
             return [
-                'key' => $item->id,
-                'label' => $item->symbol,
+                'value' => $item->id,
+                'label' => $item->condition,
             ];
         });
-        $trainers = Horse::distinct()->pluck('trainer')->map(function ($item) {
-            return [
-                'key' => $item,
-                'label' => $item,
-            ];
-        });
-        $jockey = Horse::distinct()->pluck('jockey')->map(function ($item) {
-            return  [
-                'key' => $item,
-                'label' => $item,
-            ];
-        });
-        $raceTrace = Race::distinct()->pluck('track_name')->map(function ($item) {
-            return  [
-                'key' => $item,
-                'label' => $item,
-            ];
-        });
-        $raceType = Race::distinct()->pluck('type')->map(function ($item) {
-            return  [
-                'key' => $item,
-                'label' => $item,
-            ];
-        });
+
+        $trainers = Horse::distinct()->pluck('trainer')
+            ->filter(fn ($item) => !blank($item))
+            ->map(function ($item) {
+                return [
+                    'value' => $item,
+                    'label' => $item,
+                ];
+            })
+            ->values();
+
+        $jockey = Horse::distinct()->pluck('jockey')
+            ->filter(fn ($item) => !blank($item))
+            ->map(function ($item) {
+                return  [
+                    'value' => $item,
+                    'label' => $item,
+                ];
+            })
+            ->values();
+
+        $raceTrace = Race::distinct()->pluck('track_name')
+            ->filter(fn ($item) => !blank($item))
+            ->map(function ($item) {
+                return  [
+                    'value' => $item,
+                    'label' => $item,
+                ];
+            })
+            ->values();
+
+        $raceType = Race::distinct()->pluck('type')
+            ->filter(fn ($item) => !blank($item))
+            ->map(function ($item) {
+                return  [
+                    'value' => $item,
+                    'label' => $item,
+                ];
+            })
+            ->values();
+
         $sex = [
             [
-                'key' => 'F',
+                'value' => 'F',
                 'label' => 'Female',
             ],
             [
-                'key' => 'M',
+                'value' => 'M',
                 'label' => 'Male',
             ]
         ];
         $minDistance = YardLookup::min('distance') > FurlongLookup::min('distance') ? YardLookup::min('distance') : FurlongLookup::min('distance');
         $maxDistance = YardLookup::max('distance') > FurlongLookup::max('distance') ? YardLookup::max('distance') : FurlongLookup::max('distance');
 
-        /*$startDate = Carbon::parse(Horse::min('date'));*/
         $startDate = Carbon::parse(Horse::min('date'));
 
         return [
