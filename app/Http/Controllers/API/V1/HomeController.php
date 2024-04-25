@@ -240,6 +240,7 @@ class HomeController extends Controller
             $totalNumberOfStarts += $horse->race->horses()->count();
             $averagePayout += $horse->race->horses()->sum('win_odds');
         }
+
         if ($totalNumberOfStarts) {
             $roi = ((($numberOfWins->count() * $averageWinOdds) - $numberOfStarts) / $totalNumberOfStarts);
         }
