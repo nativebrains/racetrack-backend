@@ -27,27 +27,27 @@ class HomeController extends Controller
 
         $horses = collect();
 
-        $recentRaceFilters = $request->recentRaceFilters;
-        $recentRaceData =  $this->fetRaceData($recentRaceFilters);
+        $recentRaceFilters  = $request->recentRaceFilters;
+        $recentRaceData     =  $this->fetRaceData($recentRaceFilters);
 
-        $previousRaceFilters = $request->previousRaceFilters;
-        $recentStartDate = $recentRaceFilters['date']['start'];
+        $previousRaceFilters    = $request->previousRaceFilters;
+        $recentStartDate        = $recentRaceFilters['date']['start'];
 
-        $startDate = Race::where('date', '<', $recentStartDate)->get()->last()?->date;
+        $startDate          = Race::where('date', '<', $recentStartDate)->get()->last()?->date;
 
-        $previousRaceFilters['date']['start'] = $startDate;
-        $previousRaceFilters['date']['end'] = $recentRaceFilters['date']['end'];
+        $previousRaceFilters['date']['start']   = $startDate;
+        $previousRaceFilters['date']['end']     = $recentRaceFilters['date']['end'];
 
-        $previousRaceData =  $this->fetRaceData($previousRaceFilters);
+        $previousRaceData   =  $this->fetRaceData($previousRaceFilters);
 
-        $horses = $recentRaceData->merge($previousRaceData);
+        $horses             = $recentRaceData->merge($previousRaceData);
 
-        $horse = $horses->last();
+        $horse              = $horses->last();
 
-        $winPercent = $horse ? $this->calculateWinPercentage($horse->race) : 1;
-        $inMoney = $horse ? $this->calculateInMoney($horse->race) : 1;
+        $winPercent         = $horse ? $this->calculateWinPercentage($horse->race) : 1;
+        $inMoney            = $horse ? $this->calculateInMoney($horse->race) : 1;
 
-        $averages = $this->calculateAverages($horses);
+        $averages           = $this->calculateAverages($horses);
 
         return response()->json([
             'winPercent' => $winPercent,
@@ -165,34 +165,72 @@ class HomeController extends Controller
         ];
     }
 
+    // private function fetRaceData($filters)
+    // {
+    //     // dd($filters['distance']);
+    //     return Horse::with('race')
+    //         ->whereHas('race', function ($query) use ($filters) {
+    //             return $query->when(isset($filters['surface']), function ($query) use ($filters) {
+    //                 $query->where('surface_id', $filters['surface']);
+    //             })
+    //                 ->when(isset($filters['race_type']), function ($query) use ($filters) {
+    //                     $query->where('type', $filters['race_type']);
+    //                 })
+    //                 ->when(isset($filters['track']), function ($query) use ($filters) {
+    //                     $query->where('track_lookup_id', (int)$filters['track']);
+    //                 })
+    //                 ->when(isset($filters['distance']), function ($query) use ($filters) {
+    //                     $distance = $filters['distance'];
+    //                     if ($distance['min'] && $distance['max']) {
+    //                         // $query->whereHas('distance', function ($query) use ($distance) {
+    //                         //     $query->whereBetween('distance', $distance);
+    //                         // });
+    //                         $query->whereHas('race.distance', function ($query) use ($distance) {
+    //                             $query->whereBetween('distance', $distance);
+    //                         });
+    //                     }
+    //                 })
+    //                 ->when(isset($filters['age']), function ($query) use ($filters) {
+    //                     $query->where('age_id', $filters['age']);
+    //                 });
+    //         })
+    //         ->when(isset($filters['date']), function ($query) use ($filters) {
+    //             $date = $filters['date'];
+    //             if (isset($date) && $date['start'] && $date['end']) {
+    //                 $query->whereBetween('date', [$date['start'] . ' 00:00:00', $date['end'] . ' 23:59:59']);
+    //             }
+    //         })
+    //         ->when(isset($filters['trainer']), function ($query) use ($filters) {
+    //             $query->where('trainer', $filters['trainer']);
+    //         })
+    //         ->when(isset($filters['jockey']), function ($query) use ($filters) {
+    //             $query->where('jockey', $filters['jockey']);
+    //         })
+    //         ->when(isset($filters['race_track']), function ($query) use ($filters) {
+    //             $query->where('track_name', $filters['race_track']);
+    //         })
+    //         ->when(isset($filters['sex']), function ($query) use ($filters) {
+    //             $query->where('gender', $filters['sex']);
+    //         })
+    //         ->when(isset($filters['odds']), function ($query) use ($filters) {
+    //             $odds = $filters['odds'];
+    //             if ($odds['min'] && $odds['max']) {
+    //                 $query->whereBetween('win_odds', [$odds['min'], $odds['max']]);
+    //             }
+    //         })
+    //         ->orderBy('date', 'desc')
+    //         ->get();
+    // }
+
     private function fetRaceData($filters)
     {
         return Horse::with('race')
             ->whereHas('race', function ($query) use ($filters) {
-                return $query->when(isset($filters['surface']), function ($query) use ($filters) {
-                    $query->where('surface_id', $filters['surface']);
-                })
-                    ->when(isset($filters['race_type']), function ($query) use ($filters) {
-                        $query->where('type', $filters['race_type']);
-                    })
-                    ->when(isset($filters['track']), function ($query) use ($filters) {
-                        $query->where('track_lookup_id', (int)$filters['track']);
-                    })
-                    ->when(isset($filters['distance']), function ($query) use ($filters) {
-                        $distance = $filters['distance'];
-                        if ($distance['min'] && $distance['max']) {
-                            $query->whereHas('distance', function ($query) use ($distance) {
-                                $query->whereBetween('distance', $distance);
-                            });
-                        }
-                    })
-                    ->when(isset($filters['age']), function ($query) use ($filters) {
-                        $query->where('age_id', $filters['age']);
-                    });
+                $this->applyRaceFilters($query, $filters);
             })
             ->when(isset($filters['date']), function ($query) use ($filters) {
                 $date = $filters['date'];
-                if (isset($date) && $date['start'] && $date['end']) {
+                if (!empty($date['start']) && !empty($date['end'])) {
                     $query->whereBetween('date', [$date['start'] . ' 00:00:00', $date['end'] . ' 23:59:59']);
                 }
             })
@@ -210,13 +248,38 @@ class HomeController extends Controller
             })
             ->when(isset($filters['odds']), function ($query) use ($filters) {
                 $odds = $filters['odds'];
-                if ($odds['min'] && $odds['max']) {
+                if (!empty($odds['min']) && !empty($odds['max'])) {
                     $query->whereBetween('win_odds', [$odds['min'], $odds['max']]);
                 }
             })
             ->orderBy('date', 'desc')
             ->get();
     }
+
+    private function applyRaceFilters($query, $filters)
+    {
+        $query->when(isset($filters['surface']), function ($query) use ($filters) {
+            $query->where('surface_id', $filters['surface']);
+        })
+        ->when(isset($filters['race_type']), function ($query) use ($filters) {
+            $query->where('type', $filters['race_type']);
+        })
+        ->when(isset($filters['track']), function ($query) use ($filters) {
+            $query->where('track_lookup_id', (int)$filters['track']);
+        })
+        ->when(isset($filters['distance']), function ($query) use ($filters) {
+            $distance = $filters['distance'];
+            if (!empty($distance['min']) && !empty($distance['max'])) {
+                // $query->whereHas('distance', function ($query) use ($distance) {
+                //     $query->whereBetween('distance', [$distance['min'], $distance['max']]);
+                // });
+            }
+        })
+        ->when(isset($filters['age']), function ($query) use ($filters) {
+            $query->where('age_id', $filters['age']);
+        });
+    }
+
 
     private function calculateAverages($horses)
     {
@@ -264,5 +327,9 @@ class HomeController extends Controller
         $percent = $race->horses()->count() > 0 ? (3 / $race->horses()->count()) * 100 : 0;
 
         return round($percent, 2);
+    }
+
+    public function getRaces() {
+        return FurlongLookup::with('races')->get();
     }
 }

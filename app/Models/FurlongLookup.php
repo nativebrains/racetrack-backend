@@ -9,9 +9,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class FurlongLookup extends Model
 {
     use HasFactory, SoftDeletes;
+    
     protected $fillable = [
         'distance',
         'type',
         'value'
     ];
+
+    public function races()
+    {
+        return $this->morphedByMany(Race::class, 'distance');
+    }
 }

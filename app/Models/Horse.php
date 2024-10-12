@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Horse extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
         'race_id',
         'track_name',
@@ -43,12 +45,12 @@ class Horse extends Model
         return json_decode($value, true);
     }
 
-    public function medicationEquipment(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function medicationEquipment()
     {
         return $this->belongsToMany(MedicationEquipment::class);
     }
 
-    public function race(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function race()
     {
         return $this->belongsTo(Race::class);
     }

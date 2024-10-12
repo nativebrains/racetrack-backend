@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->integer('distance')->unique();
             $table->string('type');
-            $table->integer('value')->comment('this value is in Yards, i.e 220 is equal to 1 furlong');
+            $table->double('value')->comment('this value is in Yards, i.e 220 is equal to 1 furlong');
             $table->timestamps();
             $table->softDeletes();
         });
