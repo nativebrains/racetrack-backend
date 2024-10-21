@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Race extends Model
 {
     use HasFactory, SoftDeletes;
-    
+
     protected $fillable = [
         'track_name',
         'date',
@@ -50,7 +50,7 @@ class Race extends Model
     }
     public function distance(): \Illuminate\Database\Eloquent\Relations\MorphTo
     {
-        return $this->morphTo('distance');
+        return $this->morphTo();
     }
 
     public function surface(): \Illuminate\Database\Eloquent\Relations\BelongsTo
